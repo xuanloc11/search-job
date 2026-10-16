@@ -29,6 +29,12 @@ per-file diff commands.
 
 ### Changed
 
+- **This workspace now searches Vietnam only.** Sources are TopCV, VietnamWorks,
+  CareerViet, Việc Làm 24h, ITviec for technical roles, and LinkedIn filtered to
+  Vietnam. Setup preserves the source list; search, ranking, and application
+  evaluation verify the role's Vietnam location, including remote eligibility.
+  The domestic boards use the existing WebSearch fallback.
+
 - **`/apply` and `/rank` route matching portal URLs to installed CLI `detail` before `WebFetch`**
   (#535, `.claude/commands/apply.md` Step 0, `.claude/commands/rank.md` Step 2,
   `.claude/skills/job-application-assistant/09-web-research.md`) - job portal URLs pasted

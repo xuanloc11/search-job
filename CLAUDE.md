@@ -11,6 +11,13 @@ This repo is a job application workspace. Claude acts as a career advisor and ap
 4. **Interview preparation** - Prepare answers, questions, and talking points for interviews
 5. **Career strategy** - Advise on positioning and personal branding
 
+## Job Search Market
+
+- **Target market:** Vietnam only, nationwide until the user specifies cities or provinces.
+- **Sources and query configuration:** `.claude/skills/job-scraper/search-queries.md` is the source of truth for the allowed boards and their Vietnam filters. Apply it to every job search, including directly invoked portal skills; an installed or enabled skill is not automatically an allowed source.
+- **Location verification:** use the Vietnam location gate in `04-job-evaluation.md` for searches, ranking, and applications. Remote jobs must explicitly accept work from Vietnam. Do not infer the candidate's residence, citizenship, or working languages from this target market.
+- Preserve this market and source configuration during `/setup`, including document imports and `/setup --section search`, unless the user explicitly requests a different market.
+
 ## Candidate Profile
 
 <!-- This section is auto-populated by /setup. You can also fill it in manually. -->

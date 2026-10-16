@@ -6,6 +6,19 @@
 
 *The job search that runs on your machine.*
 
+## Bắt đầu nhanh tại Việt Nam
+
+Bản này tìm việc **trên toàn quốc Việt Nam**; thành phố và giới hạn đi lại sẽ được hỏi khi thiết lập hồ sơ. Việc remote chỉ được đưa vào kết quả khi tin tuyển dụng xác nhận nhận ứng viên làm việc từ Việt Nam.
+
+Nguồn đang dùng: **TopCV, VietnamWorks, CareerViet, Vieclam24h, ITviec** (ngành công nghệ) và **LinkedIn** với `--location "Vietnam"`. Các trang trong nước dùng WebSearch/WebFetch sẵn có, chưa có CLI riêng. Các portal khác đi kèm, kể cả Freehire và bốn portal Đan Mạch, nằm ngoài phạm vi tìm kiếm của bản này dù cờ `enabled` có bật; mã được giữ để tương thích upstream. Danh sách nguồn chuẩn nằm trong [search-queries.md](.claude/skills/job-scraper/search-queries.md).
+
+1. Đặt CV đầy đủ vào `documents/cv/`, rồi chạy `/setup` để nhập hồ sơ và chọn nghề, thành phố, ngôn ngữ làm việc.
+2. Chạy `/scrape` để tìm việc; `/scrape broad` mở rộng nhóm nghề trong Việt Nam. Chạy `/rank` nếu cần danh sách ưu tiên.
+3. Chạy `/apply <URL tin tuyển dụng>` hoặc dán toàn bộ tin. Duyệt đánh giá trước khi soạn CV và thư; sau đó tự gửi hồ sơ.
+4. Báo `/outcome <công ty>` sau khi gửi hoặc có phản hồi; dùng `/interview <công ty>` để chuẩn bị phỏng vấn.
+
+Trong Codex, có thể yêu cầu bằng lời, ví dụ: “Thực hiện workflow setup theo `.claude/commands/setup.md`”. Hướng dẫn cài đặt và các ví dụ upstream ở bên dưới; phạm vi Việt Nam ở trên vẫn áp dụng.
+
 <p align="center">
   <a href="https://trendshift.io/repositories/43622?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-43622" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/43622/daily" alt="MadsLorentzen%2Fai-job-search | Trendshift" width="250" height="55"/></a>
 </p>
@@ -39,7 +52,7 @@ Sixty-nine tailored applications, twenty first interviews, and one signed contra
 
 ## What this is
 
-A structured workflow that turns Claude Code into a full-stack job application assistant. The core workflow (self-profiling, fit evaluation, and the drafter-reviewer application pipeline) is **language- and country-agnostic**. The job portal search skills are built for the Danish market (Jobindex, Jobnet, Akademikernes Jobbank, etc.), but the pattern is designed to be swapped for your local job boards.
+A structured workflow that turns Claude Code into a full-stack job application assistant. The core workflow (self-profiling, fit evaluation, and the drafter-reviewer application pipeline) is **language- and country-agnostic**. This fork configures job discovery for Vietnam only, using the sources and remote-eligibility rules in [search-queries.md](.claude/skills/job-scraper/search-queries.md). Other shipped portal integrations remain available in the code for upstream compatibility and are outside this fork's search scope.
 
 ```
 /setup          /scrape              /apply <url>
@@ -292,7 +305,9 @@ If you prefer doing it by hand, the manual route still works: update the guidanc
 
 ### Job search tools
 
-The four Danish CLI tools in `.agents/skills/` (Jobbank, Jobdanmark, Jobindex, Jobnet) demonstrate the pattern for building a job-portal integration for a specific market. If you're in a different country, run:
+This fork searches TopCV, VietnamWorks, CareerViet, Vieclam24h and ITviec (tech) through the existing WebSearch fallback, plus LinkedIn's CLI with `--location "Vietnam"`. No new domestic portal CLIs are required. [search-queries.md](.claude/skills/job-scraper/search-queries.md) controls which sources may run; installation or an `enabled: true` flag alone does not add a source to the local workflow.
+
+The remaining examples describe upstream extension capabilities. The four Danish CLI tools in `.agents/skills/` (Jobbank, Jobdanmark, Jobindex, Jobnet) are retained examples outside this fork's active scope. To build a new integration separately, the upstream command is:
 
 ```
 /add-portal
@@ -302,7 +317,7 @@ Give it your local job board's URL. The command investigates the portal (search-
 
 Maintaining a fork adapted to your market or language? Add it to the [Community forks & adaptations](https://github.com/MadsLorentzen/ai-job-search/discussions/78) thread so others can find it.
 
-For **country-agnostic** starting points outside Denmark, the repo ships two portal skills alongside the Danish demos:
+The repo also ships these **country-agnostic** portal skills alongside the Danish demos; LinkedIn is active with Vietnam scoping, while Freehire is retained outside the local search scope:
 
 - **`linkedin-search`** — built on LinkedIn's public, unauthenticated `jobs-guest` endpoints. Field-agnostic, **zero runtime dependencies** (runs with just `bun`), and takes the search location as an explicit flag, so it works for any market out of the box (`-l "Berlin, Germany"`, `-l "Mumbai, Maharashtra, India"`, `-l "Remote"`, …). Intended for **personal use only** — automated access is against LinkedIn's Terms of Service, so keep volume low. See `.agents/skills/linkedin-search/SKILL.md`.
 - **`freehire-search`** — queries the [freehire.me](https://freehire.me) aggregator's public REST API (JSON, no API key). Tech-focused (software, data, engineering, DevOps, remote), multi-market via facet flags (`--region`, `--country`, `--remote`), and **zero runtime dependencies**. Unlike the HTML-scraping Danish portals, results come back structured (skills, seniority, category). The backend is MIT-licensed and [self-hostable](https://github.com/strelov1/freehire) — point `FREEHIRE_API_URL` at your own instance if you prefer. See `.agents/skills/freehire-search/SKILL.md`.
@@ -311,7 +326,7 @@ For **country-agnostic** starting points outside Denmark, the repo ships two por
 
 Everything above adds up to an extension model, so here it is stated plainly. The framework has three extension points, and none of them require touching upstream:
 
-1. **Portal skills** - the module system for job boards. Every `*-search` skill is a self-contained folder under `.agents/skills/` with the same contract (a `search`/`detail` CLI, `--format json|table|plain` output, an `enabled:` flag in its `SKILL.md`, its own tests). `/scrape` auto-discovers any installed skill that follows the contract - nothing to register, nothing to wire up. `/add-portal` generates new ones; the [community portal index](https://github.com/MadsLorentzen/ai-job-search/discussions/78) catalogs the ones other forks have built.
+1. **Portal skills** - the module system for job boards. Every `*-search` skill is a self-contained folder under `.agents/skills/` with the same contract (a `search`/`detail` CLI, `--format json|table|plain` output, an `enabled:` flag in its `SKILL.md`, its own tests). `/scrape` auto-discovers installed skills, then runs only enabled sources permitted by this fork's `search-queries.md`. `/add-portal` generates new ones; the [community portal index](https://github.com/MadsLorentzen/ai-job-search/discussions/78) catalogs the ones other forks have built.
 2. **Document templates** - `/add-template` registers any CV or cover-letter toolchain that compiles to PDF from the command line, LaTeX or otherwise.
 3. **Evaluation criteria** - deal-breakers and preferences in your profile are free-form, and the evaluation rubric scores against whatever you put there. "Strong parental-leave terms", "minimum salary X per my union's scale", "no on-call" - each is one profile line, no code, and it carries real weight in `/rank` and `/apply` fit evaluations. Language is the one deal-breaker type with dedicated, structured handling: `/setup` captures every language you work in and your level (asked directly, or inferred from your CV/LinkedIn export) into a `Languages` table, and the Language Gate (`04-job-evaluation.md`) hard-rejects a posting that requires a language you haven't declared at all, while flagging - not auto-rejecting - one that asks for a higher level than you declared in a language you do work in, so a borderline case (a strict "fluent" bar against your own B1/B2, say) gets your judgment instead of a silent drop.
 

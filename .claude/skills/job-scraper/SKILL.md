@@ -1,8 +1,8 @@
 ---
 name: scrape
 description: >
-  Finds new job postings matching your profile via installed portal-search CLIs
-  (LinkedIn, local job boards, and any skills added with /add-portal). Deduplicates
+  Finds Vietnam job postings matching your profile via configured Vietnamese boards
+  and LinkedIn filtered to Vietnam. Deduplicates
   across runs. Triggers on: job scrape, find jobs, search jobs, new jobs, job search,
   scrape jobs, /scrape
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bun --version), Bash(bun run .agents/skills/*/cli/src/cli.ts *), Bash(python tools/job_key.py:*), Bash(python3 tools/job_key.py:*), WebFetch, WebSearch, Agent, AskUserQuestion
@@ -30,7 +30,7 @@ The user triggers this skill by saying things like:
 Optional arguments:
 - A focus area, e.g. "/scrape data science" or "/scrape geophysics"
 - "broad" to run all search categories, e.g. "/scrape broad"
-- "health" to run the portal health check only (Step 4.75), without searching, deduplicating, or presenting jobs - e.g. "/scrape health", or "/scrape health jobnet" to probe one portal even if disabled
+- "health" to run the portal health check only (Step 4.75), without searching, deduplicating, or presenting jobs - e.g. "/scrape health", or "/scrape health linkedin" to probe one configured portal
 
 ---
 
@@ -41,12 +41,13 @@ Optional arguments:
 1. Read `job_scraper/seen_jobs.json` (create if missing - start with `{"seen": {}}`)
 2. Read `job_search_tracker.csv` to extract already-applied companies+roles
 3. Read `search-queries.md` (this directory) for the search strategy
+4. Read the Vietnam location gate in `../job-application-assistant/04-job-evaluation.md`. The configured source list and this gate apply to every path, including `broad`, custom focus, named portals, fallback, and health mode.
 
 ### Step 1: Search
 
 Read `search-queries.md` (this directory) for the search strategy. By default, run the top 3 priority query categories. If the user said "broad", run all categories. If the user specified a focus area (e.g. "data science"), prioritize queries from that category.
 
-**Use the installed CLI tools as the primary search mechanism.** Fall back to `WebSearch` only for portals that do not have a CLI skill, or if `bun` is unavailable on the system.
+**Use an installed CLI only for sources allowed by `search-queries.md`.** Currently that is LinkedIn with `--location "Vietnam"` or an explicitly requested Vietnamese city followed by `, Vietnam`, including remote searches. Use `WebSearch` for the configured Vietnamese boards without a CLI and when an allowed CLI is unavailable or fails. Installed or enabled portals outside the source list must not run.
 
 #### 1a. Check bun availability
 
@@ -58,11 +59,11 @@ If this fails (bun not installed), skip to **1c (WebSearch fallback)** for all p
 
 #### 1b. Run CLI tools (primary — run these in parallel where possible)
 
-Discover all installed portal CLI skills by reading every `SKILL.md` found under `.agents/skills/*/SKILL.md`. Each file documents that portal's exact CLI flags and usage examples. **Use each portal's own documented interface — do not guess flags.** This approach automatically includes any new portals added via `/add-portal` without requiring changes to this file.
+Discover installed portal CLI skills under `.agents/skills/*/SKILL.md`, then intersect them with the source list in `search-queries.md`. New or enabled skills outside that list, including Freehire and the Danish portals, are skipped as out of scope; do not call them or replace them with web queries. Each allowed file documents that portal's exact CLI flags and usage examples. **Use each portal's own documented interface — do not guess flags.**
 
 **Honor the `enabled` toggle.** A portal is enabled unless its `SKILL.md` frontmatter sets `enabled: false` (a missing key means enabled — the default). Skip each disabled portal and record it for the Step 5 summary. A fork can thus keep a portal installed but sit out a run without deleting its directory.
 
-For each **enabled** portal skill:
+For each **enabled, in-scope** portal skill:
 
 1. Read its `SKILL.md` to find the correct `bun run …` invocation and supported flags.
 2. Translate the query terms from `search-queries.md` into that portal's flag format (e.g. `--key`, `--search-string`, `--query`, filter codes — whatever the portal's SKILL.md specifies).
@@ -83,9 +84,13 @@ Use `WebSearch` for:
 
 Use the site-specific query strings from `search-queries.md` directly as WebSearch queries for these portals.
 
+Fallback is limited to the configured sources and Vietnam roles. It never reintroduces an out-of-scope or disabled portal. Search all relevant configured Vietnamese boards even when LinkedIn's CLI succeeds.
+
 Tag each fallback result as WebSearch-sourced, keeping the portal tag when the fallback stands in for an installed portal whose CLI failed. Step 4 persists this as the entry's `source`, and Step 5 reports which portals ran on the fallback this run.
 
 ### Step 2: Fetch & Parse
+
+Before admitting a fetched posting to the result pool, apply the Vietnam location gate in `04-job-evaluation.md`. Only verified Vietnam roles, including explicitly Vietnam-eligible remote work, continue to fit assessment and matches. Omit roles abroad and unverified locations with a brief reason; do not call them expired. Employer-page recovery and a domestic board's listings must pass the same gate.
 
 For each promising result from Step 1:
 
@@ -215,25 +220,25 @@ Scraper-based portal CLIs rot silently: when a portal changes its markup, the pa
 - **Degraded scan:** inspect the results it returned this run. Flags: `company` null or empty on every result, empty titles, undecoded entities (`&amp;`) or HTML fragments in titles, URLs that do not point at the portal. Any of these means the parser is half-working and `/scrape` is silently collecting junk.
 - **Yield history:** if the portal returned zero results across all of this run's queries, check whether `seen_jobs.json` holds prior entries from it (via the `portal` field, or by matching URL domains for entries predating the field). A portal that produced jobs on earlier runs and produces nothing now is suspect - the same queries worked before.
 
-**Escalation (bounded, on suspicion only).** A suspect portal gets **one** sentinel probe: run its documented `search` with the example query from its own SKILL.md (that query provably worked when the skill was registered), the portal's limit flag capped at 3, `--format json`. If that returns nothing, retry **once** with a single common word. Only then is the verdict **broken**. A 429 or block page is **never** evidence of breakage - record the portal as **inconclusive (rate-limited)**, back off, and do not retry.
+**Escalation (bounded, on suspicion only).** A suspect in-scope portal gets **one** sentinel probe: run its documented `search` with the example role query from its own SKILL.md, replacing any example location with the configured Vietnam filter, the portal's limit flag capped at 3, `--format json`. If that returns nothing, retry **once** with a single common word while keeping the Vietnam filter. Only then is the verdict **broken**. A 429 or block page is **never** evidence of breakage - record the portal as **inconclusive (rate-limited)**, back off, and do not retry.
 
 **Verdicts.** Healthy portals get silence - no table, no line. Anything else surfaces in the Step 5 summary as a health line.
 
-**Probe-only mode (`/scrape health`).** Skip Steps 1-4 and this step's free pass (there is no fresh run to scan); instead probe every installed portal directly - enabled ones by default, a disabled one only when named explicitly (e.g. `/scrape health jobnet`). Each portal gets the sentinel probe above, the degraded criteria applied to whatever it returns, and - since the user explicitly asked for diagnosis - one `detail` fetch on the first result of each healthy portal (description must be readable decoded text; a failure downgrades to degraded). Report all statuses in this mode, including healthy. Volume stays bounded: one search, at most one retry, at most one detail per portal.
+**Probe-only mode (`/scrape health`).** Load the configured sources and Vietnam location gate first, then skip Steps 1-4 and this step's free pass (there is no fresh run to scan). Probe only installed, enabled, in-scope portals, keeping the Vietnam filter. A named portal outside the source list is reported as out of scope without a request to it. Configured boards without a CLI are reported as WebSearch-only, not broken. Each probed portal gets the sentinel probe above, the degraded criteria applied to whatever it returns, and one `detail` fetch on the first result of each healthy portal (description must be readable decoded text; a failure downgrades to degraded). Report all statuses in this mode, including healthy. Volume stays bounded: one search, at most one retry, at most one detail per portal.
 
 ### Step 5: Present Results
 
 Present new jobs in a table sorted by fit (high first). When Step 1b skipped
 portals (`enabled: false`), report them with the `skipped (disabled):` line below
 so opting one out stays visible rather than silent; omit the line when nothing
-was skipped. When any portal's results came from the Step 1c fallback this run
+was skipped. Also report `skipped (out of scope):` for installed portals outside the configured source list. When any portal's results came from the Step 1c fallback this run
 (bun unavailable, or its CLI failed at runtime), report it with the
 `fallback (websearch):` line - fallback results come from a search index that
 can be stale, so the reader should know which rows carry that caveat; omit the
 line when every portal ran its CLI. When Step 4.75 found a portal degraded, broken, or inconclusive,
 add one `health:` line per suspect portal (healthy portals get no line); after
 the report, offer to set that portal's `enabled: false` so `/scrape` stops
-running it (and covers it via the Step 1c fallback) until it is fixed - only
+running it until it is fixed; a disabled portal is not searched via fallback - only
 edit the toggle with the user's confirmation, and never edit anything else in
 the skill.
 
@@ -285,7 +290,7 @@ If the user decides to apply to any job, the tracker row is written by **job-app
 
 1. **Never fabricate job postings.** Only present jobs from actual CLI search/detail output or WebSearch/WebFetch results.
 2. **Respect deduplication.** Always check seen_jobs.json AND job_search_tracker.csv before presenting.
-3. **Focus on configured geographic area.** Skip jobs that require relocation or are clearly outside commute range.
+3. **Vietnam only.** Apply the shared Vietnam location gate before matching; exclude roles abroad and unverified remote eligibility. `broad`, fallback, and health mode retain the configured source list and Vietnam filter.
 4. **Only open positions.** Skip postings with expired deadlines or those marked as closed.
 5. **Be efficient with detail fetches.** Don't run `detail` or WebFetch on every search hit — pre-filter by title/snippet, then fetch only promising matches.
 6. **Parallel searches.** Run portal CLI searches in parallel; use WebSearch only for gaps the CLIs don't cover.

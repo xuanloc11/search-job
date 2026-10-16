@@ -190,7 +190,11 @@ It runs `bun install` in every portal CLI under `.agents/skills/*/cli/` - discov
 
 For `linkedin-search` and `freehire-search` the install is optional: both have zero runtime dependencies and run with plain `bun`; `bun install` only pulls TypeScript dev types.
 
-If you're outside Denmark, you can generate an equivalent search skill for your local job board with `/add-portal` — it scaffolds the same CLI structure for any public portal and test-runs a live query before registering. See the "Job search tools" section in the README.
+### Cấu hình nguồn tuyển dụng Việt Nam
+
+Bản này chỉ tìm việc tại **Việt Nam, trên toàn quốc**; `/setup` sẽ hỏi thành phố và giới hạn đi lại sau. Nguồn được phép chạy và quy tắc địa lý nằm trong [`.claude/skills/job-scraper/search-queries.md`](.claude/skills/job-scraper/search-queries.md), kể cả khi dùng `/scrape broad` hoặc cập nhật bằng `/setup --section search`.
+
+TopCV, VietnamWorks, CareerViet, Vieclam24h và ITviec (ngành công nghệ) dùng WebSearch/WebFetch sẵn có, chưa có CLI riêng. LinkedIn dùng CLI với `--location "Vietnam"`. Các portal còn lại đi kèm, kể cả Freehire và bốn portal Đan Mạch, nằm ngoài phạm vi tìm kiếm dù cờ `enabled` có bật; không cần xóa mã hay cài thêm scraper. Việc remote chỉ được đưa vào kết quả khi tin tuyển dụng xác nhận nhận ứng viên làm việc từ Việt Nam.
 
 ## 4. Run the setup interview
 

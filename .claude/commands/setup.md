@@ -331,14 +331,14 @@ For each reference:
 - Relationship to the user
 
 ### Section 9: Job Search Configuration
-This section generates the search queries that power `/scrape`. Use the information from Sections 1, 4, and 7 to build targeted queries.
+This section generates the search queries that power `/scrape`. Use the information from Sections 1, 4, and 7 to build targeted queries. This workspace's target market is already **Vietnam only**; preserve the source list in `.claude/skills/job-scraper/search-queries.md` for every onboarding path and `--section search`. The candidate's residence is separate from the target market.
 
 Ask about:
 - **Role titles to search for:** Job titles for the same underlying work vary a lot across companies and markets - a "Data Scientist" role at one employer may be called "Insights Analyst" or "Data Consultant" at another. Ask about the function first: "What kind of work do you actually want to be doing day-to-day?" Then translate that into concrete search terms: "Given that, what job titles should I search for? For example: Data Scientist, ML Engineer, Geophysicist." Collect 3-8 specific titles, but keep the underlying function in mind - it feeds the category naming in `search-queries.md` and the Experience Match dimension in `04-job-evaluation.md`.
 - **Key skills as search terms:** "Which of your skills are most likely to appear in job postings?" Pick 3-5 that are distinctive and searchable.
 - **Target companies (optional):** "Are there specific companies you'd like to monitor for openings?"
-- **Geographic scope:** "Which cities or regions should I search in? How far are you willing to commute?" Use this to define the location filter tiers (ideal, acceptable, borderline, too far).
-- **Job portals:** "The framework ships country-agnostic search CLIs (`linkedin-search`, `freehire-search`, enabled by default) plus Danish portal demos (Jobindex, Jobbank, Jobdanmark, Jobnet) that ship **disabled**. `/scrape` auto-discovers whatever portal skills are installed under `.agents/skills/` and skips any with `enabled: false`. Which portals fit your market?" **Then act on the answer:** if the user's market is Denmark (or they ask for the Danish boards), edit each of the four Danish `SKILL.md` files and set `enabled: true` in the frontmatter; otherwise leave them disabled and say so - they cost nothing while disabled and can be enabled later by flipping the flag. If the user needs a local board that is not shipped, guide them to `/add-portal` (market-specific skills live in their fork). WebSearch/`site:` queries remain the fallback for portals without a CLI skill.
+- **Geographic scope:** "Search nationwide in Vietnam, or focus on particular cities/provinces? Do you want onsite, hybrid, or remote work, and what commute is acceptable?" Keep nationwide coverage until the user narrows it. Remote roles must satisfy the Vietnam location gate in `04-job-evaluation.md`.
+- **Job portals:** Use the existing Vietnamese source list in `search-queries.md`: TopCV, VietnamWorks, CareerViet, Việc Làm 24h, ITviec for technical roles, and LinkedIn filtered to Vietnam. The domestic boards use WebSearch; LinkedIn uses its CLI with `--location "Vietnam"` or an explicitly requested Vietnamese city followed by `, Vietnam`. Do not enable the Danish demos or add Freehire to searches. Ask only whether the user wants to narrow these sources or explicitly add another Vietnamese board; a missing CLI does not require `/add-portal` to search a configured board.
 - **CV language:** "Should your CVs be written in English (the default, accepted in most markets), or in your market's language?" Record the answer as a `CV language: <language>` line in CLAUDE.md's Identity section. Cover letters always match each posting's language automatically; this setting governs the CV only. If the user is unsure, keep English and note they can re-run `/setup --section search` to change it.
 
 **Important:** Also suggest role types the user may not have considered, based on their skill profile. For example:
@@ -355,7 +355,7 @@ This proactive suggestion step helps users discover career paths they might not 
 Once data collection is complete, generate or finish populating the following files. **For Path A**, the seven skill files are already populated by Step A7; check each before writing and skip if its content is no longer placeholder text.
 
 ### 1. Update `CLAUDE.md`
-Replace all `[PLACEHOLDER]` tokens with the user's actual information. Keep the structure, workflow, and verification checklist intact.
+Replace all `[PLACEHOLDER]` tokens with the user's actual information. Keep the structure, workflow, verification checklist, and Job Search Market rules intact; residence data must not overwrite the Vietnam target market.
 
 ### 2. Populate `01-candidate-profile.md` *(Path B and C; skip if Path A populated it)*
 Write the full candidate profile with structured sections: Identity (including Languages, with levels), Education, Professional Experience, Independent Projects, Technical Skills, Publications, Awards, References.
@@ -387,7 +387,8 @@ Replace placeholder personal data with their actual name, contact info, and add 
 Replace all placeholder tokens in the search queries file with the user's actual information from Section 9 (or the equivalent follow-up questions in Path A's Step A7):
 - Replace `[YOUR_PRIMARY_ROLE_TYPE]`, `[YOUR_PRIMARY_JOB_TITLE]`, etc. with actual role titles
 - Replace `[YOUR_KEY_SKILL]`, `[YOUR_DOMAIN_KEYWORD_1]`, etc. with actual skills and domain terms
-- Replace `[YOUR_CITY]`, `[YOUR_COUNTRY]`, `[YOUR_REGION]` with actual location
+- Keep Vietnam as the search country; add cities/provinces only if the user requests them. Do not substitute a foreign residence into search queries.
+- Preserve the configured Vietnamese sources, LinkedIn's Vietnam filter, and the location gate; do not regenerate a generic/global source list.
 - Fill in the location filter tiers (ideal, acceptable, borderline, too far) based on commute constraints
 - Organize queries into priority categories matching the user's career direction:
   - Priority 1: Their strongest/most desired role direction

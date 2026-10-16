@@ -1,5 +1,5 @@
 ---
-framework_version: 1.2.6
+framework_version: 1.2.7
 ---
 
 # Job Evaluation Framework
@@ -91,8 +91,17 @@ Does the role and company culture match the behavioral profile?
 **Red flags to research:** Department disorganization, work dominated by maintenance over development, poor chemistry with leadership, culture mismatches. Check reviews, media coverage, LinkedIn connections, and network contacts for insider perspective.
 
 ### 4. Location & Logistics (Pass/Fail + Notes)
-- Within commute range: PASS
-- Remote with occasional office: PASS
+
+**Vietnam location gate — before scoring or drafting, for `/scrape`, `/rank`, and `/apply`:** this workspace targets Vietnam only (CLAUDE.md, Job Search Market). Verify the specific role's work location in the full posting, not its board domain, search keywords, or the employer's office list.
+
+- Onsite/hybrid work in Vietnam: passes the country gate; then check the user's city and commute constraints. Until supplied, the geographic scope is nationwide.
+- Remote work: passes the country gate only when the posting explicitly allows work from Vietnam, or explicitly hires worldwide without restrictions excluding Vietnam. `Remote` or `APAC` alone is insufficient; check any country restrictions and required office visits.
+- Work located abroad, relocation abroad, or remote work restricted to other countries: `location_verdict: FAIL`, with the posting's location/restriction quoted. Exclude from matches and the ranked shortlist; do not draft.
+- Unverified location or remote eligibility: `location_verdict: FAIL` with the reason **Vietnam location unverified**. Keep outside matches and the shortlist pending verification; do not draft or label the role expired just because its location is unverified. This is a lack of location evidence, not a claim about the candidate's visa or citizenship.
+
+Once the Vietnam country gate passes:
+- Within the user's declared commute range: PASS
+- Remote with any required office visits within the user's accepted Vietnamese locations: PASS
 - Requires relocation: FAIL (deal-breaker)
 - Frequent international travel: FLAG (discuss with user)
 
